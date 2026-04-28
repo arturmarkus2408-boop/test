@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1e1e2f">
+  <title>PESKOV — умный помощник</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', Roboto; }
+    body {
+      background: #f4f7fc;
+      color: #1e2a3e;
+      padding: 20px;
+      transition: background 0.2s, color 0.2s;
+    }
+    /* ----- СВЕТЛАЯ (по умолчанию) ----- */
+    body.theme-light {
+      background: #f4f7fc;
+      color: #1e2a3e;
+    }
+    body.theme-light .card, body.theme-light .calendar-grid { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    body.theme-light .task-item { background: #f9fafb; }
+    body.theme-light .upcoming-card { background: #f1f5f9; }
+    body.theme-light .kpi-item { background: #eef2ff; }
+    body.theme-light .cal-day { background: #eef2ff; }
+
+    /* ----- ИЗУМРУДНАЯ (вместо тёмной) ----- */
+    body.theme-emerald {
+      background: #0a2f2a;
+      color: #d9f0ec;
+    }
+    body.theme-emerald .card, body.theme-emerald .calendar-grid { background: #134e42; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+    body.theme-emerald .task-item { background: #1e6b5c; }
+    body.theme-emerald .upcoming-card { background: #0f3d34; }
+    body.theme-emerald label { color: #b9f3e8; }
+    body.theme-emerald input, body.theme-emerald select, body.theme-emerald textarea { background: #2c7a6b; border-color: #52b09b; color: #f0faf7; }
+    body.theme-emerald button { background: #2c9c8a; }
+    body.theme-emerald .icon-btn-sm, body.theme-emerald .dropdown-btn { background: #1f6658; color: white; }
+    body.theme-emerald .kpi-item { background: #0f473d; }
+    body.theme-emerald .cal-day { background: #1c6e5e; }
+    body.theme-emerald .cal-day.selected { background: #3dbd9c; color: #00261f; }
+    body.theme-emerald .dropdown-content { background: #1e5f51; border-color: #3b9f89; }
+
+    /* ----- МЯГКАЯ ПАСТЕЛЬНАЯ ----- */
+    body.theme-soft {
+      background: #fff7f0;
+      color: #5e4b3c;
+    }
+    body.theme-soft .card, body.theme-soft .calendar-grid { background: #fffef7; box-shadow: 0 6px 14px rgba(0,0,0,0.03); border: 1px solid #ffe3c9; }
+    body.theme-soft .task-item { background: #fff4ea; }
+    body.theme-soft .upcoming-card { background: #ffefdf; }
+    body.theme-soft label { color: #b07d5c; }
+    body.theme-soft input, body.theme-soft select, body.theme-soft textarea { background: #ffffff; border-color: #f7cdb0; color: #5e4b3c; }
+    body.theme-soft button { background: #d9b48b; color: #3e2a1f; }
+    body.theme-soft .icon-btn-sm, body.theme-soft .dropdown-btn { background: #f8e1cd; color: #7a5a44; }
+    body.theme-soft .kpi-item { background: #ffefdf; }
+    body.theme-soft .cal-day { background: #faeedf; }
+    body.theme-soft .cal-day.selected { background: #e7b88a; color: white; }
+    body.theme-soft .dropdown-content { background: #fff5ea; border-color: #f7dbbc; }
+
+    .container { max-width: 1500px; margin: 0 auto; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .caricature { width: 48px; height: 48px; border-radius: 30px; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15); background: linear-gradient(135deg, #FFDEE9, #B5FFFC); }
+    .caricature svg { width: 44px; height: 44px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+    .brand h1 { font-size: 1.8rem; background: linear-gradient(135deg, #1e3c72, #2a5298); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    body.theme-emerald .brand h1 { background: linear-gradient(135deg, #b0f3e0, #3dd6b3); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    body.theme-soft .brand h1 { background: linear-gradient(135deg, #daa06a, #b87a4b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    
+    /* Новая компактная панель справа */
+    .right-tools { display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.03); padding: 4px 10px; border-radius: 48px; backdrop-filter: blur(2px); }
+    .icon-btn-sm { background: #eef2f6; border: none; padding: 6px 10px; border-radius: 32px; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; transition: 0.1s; font-weight: 500; }
+    .icon-btn-sm:hover { filter: brightness(0.94); transform: scale(0.96); }
+    .lang-select { background: #eef2f6; border: none; padding: 6px 12px; border-radius: 32px; font-size: 0.75rem; font-weight: 500; cursor: pointer; outline: none; }
+    body.theme-emerald .lang-select { background: #1f6658; color: white; }
+    body.theme-soft .lang-select { background: #f8e1cd; color: #7a5a44; }
+
+    /* выпадающее меню (dropdown) */
+    .dropdown { position: relative; display: inline-block; }
+    .dropdown-btn { background: #eef2f6; border: none; padding: 6px 10px; border-radius: 32px; cursor: pointer; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 4px; transition: 0.1s; }
+    .dropdown-btn:hover { filter: brightness(0.94); transform: scale(0.96); }
+    .dropdown-content { display: none; position: absolute; right: 0; top: 110%; background: white; min-width: 160px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); border-radius: 24px; z-index: 100; overflow: hidden; border: 1px solid #e2e8f0; backdrop-filter: blur(4px); }
+    .dropdown-content a, .dropdown-content button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 16px; text-decoration: none; background: transparent; border: none; text-align: left; font-size: 0.8rem; cursor: pointer; font-weight: 500; color: inherit; transition: 0.05s; }
+    .dropdown-content a:hover, .dropdown-content button:hover { background: rgba(0,0,0,0.05); }
+    .show { display: block; }
+
+    .card { background: white; border-radius: 28px; padding: 18px 24px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .flex-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; margin-bottom: 16px; }
+    .form-group { flex: 1; min-width: 130px; }
+    label { font-weight: 600; font-size: 0.75rem; display: block; margin-bottom: 4px; color: #4a5568; }
+    input, select, button, textarea { background: #f9fafb; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 20px; font-size: 0.9rem; width: 100%; }
+    button { background: #3b6ea0; color: white; border: none; font-weight: 600; cursor: pointer; transition: 0.1s; }
+    button:hover { filter: brightness(0.95); }
+    .task-list { max-height: 380px; overflow-y: auto; margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .task-item { background: #f9fafb; border-radius: 20px; padding: 12px 16px; border-left-width: 6px; border-left-style: solid; transition: 0.1s; }
+    .task-header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+    .task-title { font-weight: 700; }
+    .task-time { font-size: 0.8rem; color: #2c5282; font-weight: 500; margin-top: 4px; }
+    .task-reason { font-size: 0.7rem; color: #6b7280; margin-top: 4px; font-style: italic; }
+    .task-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .task-actions button { background: none; padding: 4px 12px; width: auto; font-size: 0.7rem; }
+    .task-actions button:first-child { background: #2c6e2c; }
+    .task-actions button:nth-child(2) { background: #2c6e9e; }
+    .task-actions button:last-child { background: #a03a2e; }
+    .priority-1 { border-left-color: #dc2626; }
+    .priority-2 { border-left-color: #f97316; }
+    .priority-3 { border-left-color: #3b82f6; }
+    .upcoming-panel { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+    .upcoming-card { background: #f1f5f9; border-radius: 20px; padding: 12px 18px; flex: 1; min-width: 200px; }
+    .upcoming-card h4 { margin-bottom: 8px; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
+    .calendar-search { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; flex: 2; }
+    .calendar-grid { background: white; border-radius: 20px; padding: 12px; min-width: 260px; }
+    .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 6px; }
+    .cal-day { text-align: center; padding: 6px; border-radius: 40px; cursor: pointer; font-size: 0.8rem; transition: 0.05s; }
+    .cal-day.selected { background: #2c6e9e; color: white; }
+    .cal-month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .cal-month-nav button { background: transparent; border: 1px solid currentColor; padding: 4px 12px; border-radius: 40px; font-size: 0.85rem; width: auto; cursor: pointer; font-weight: normal; color: inherit; }
+    .search-input { flex: 1; min-width: 180px; }
+    .stats { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+    .kpi-item { background: #eef2ff; border-radius: 28px; padding: 8px 18px; text-align: center; }
+    .chart-box { width: 160px; height: 130px; }
+    .footer-note { font-size: 0.7rem; text-align: center; opacity: 0.6; margin-top: 20px; }
+    .toast-notification { position: fixed; bottom: 20px; right: 20px; background: white; border-left: 5px solid #3b6ea0; border-radius: 20px; padding: 12px 18px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); z-index: 1000; cursor: pointer; }
+    .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+    .reschedule-modal, .urgent-modal { background: white; border-radius: 28px; padding: 24px; max-width: 420px; width: 90%; }
+    body.theme-emerald .reschedule-modal, body.theme-emerald .urgent-modal { background: #1e5f51; color: #effffa; }
+    body.theme-soft .reschedule-modal, body.theme-soft .urgent-modal { background: #fffaf2; }
+    .urgent-modal { border: 2px solid red; animation: pulse 0.5s infinite alternate; }
+    @keyframes pulse { from { box-shadow: 0 0 0 2px red; } to { box-shadow: 0 0 0 8px rgba(255,0,0,0.3); } }
+    .tiny-export-group { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 12px; }
+    .tiny-btn { background: #eef2f6; border: none; padding: 4px 10px; border-radius: 24px; font-size: 0.7rem; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+    @media (max-width: 700px) { .right-tools { gap: 4px; } .brand h1 { font-size: 1.4rem; } }
+  </style>
+</head>
+<body class="theme-light">
+<div class="container">
+  <div class="header-row">
+    <div class="brand">
+      <div class="caricature">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FF416C"/><stop offset="100%" stop-color="#FF4B2B"/></linearGradient><linearGradient id="grad2" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#F9D423"/><stop offset="100%" stop-color="#FF4E50"/></linearGradient></defs>
+          <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="url(#grad)" stroke="#fff" stroke-width="2"/>
+          <polygon points="50,20 75,35 75,65 50,80 25,65 25,35" fill="url(#grad2)" opacity="0.9"/>
+          <circle cx="50" cy="50" r="8" fill="white"/>
+          <path d="M50 35 L55 45 L65 48 L55 52 L50 62 L45 52 L35 48 L45 45 Z" fill="#FFE600" stroke="#D32F2F" stroke-width="1"/>
+        </svg>
+      </div>
+      <h1>PESKOV</h1>
+    </div>
+    
+    <!-- Компактная панель справа: язык, тема, выпадающее меню экспорта -->
+    <div class="right-tools">
+      <select id="langSwitcher" class="lang-select"><option value="ru">🇷🇺 Рус</option><option value="en">🇬🇧 Eng</option><option value="uz">🇺🇿 Oʻzb</option></select>
+      <button class="icon-btn-sm" id="themeCycleBtn" title="Сменить тему">🎨</button>
+      <div class="dropdown" id="exportDropdown">
+        <button class="dropdown-btn" id="dropdownToggleBtn">⚡📎</button>
+        <div class="dropdown-content" id="dropdownMenu">
+          <button id="menuScreenshotBtn">📸 Снимок экрана</button>
+          <button id="menuPdfBtn">📄 PDF</button>
+          <button id="menuWordBtn">📝 Word</button>
+          <button id="menuExcelBtn">📊 Excel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Форма создания задачи -->
+  <div class="card">
+    <div class="flex-row">
+      <div class="form-group"><label data-i18n="taskLabel">📌 Задача</label><input type="text" id="taskTitle" placeholder="Что сделать?"></div>
+      <div class="form-group"><label data-i18n="startLabel">🕘 Начало</label><input type="time" id="startTime" value="09:00"></div>
+      <div class="form-group"><label data-i18n="endLabel">🕔 Конец</label><input type="time" id="endTime" value="10:00"></div>
+      <div class="form-group"><label data-i18n="priorityLabel">⚡ Важность</label><select id="taskPriority"><option value="1" data-i18n-prio1>🔥 Высокая</option><option value="2" data-i18n-prio2>🟠 Средняя</option><option value="3" data-i18n-prio3>🔵 Низкая</option></select></div>
+      <div class="form-group"><button id="addTaskBtn" style="margin-top: 20px;" data-i18n="addBtn">➕ Добавить</button></div>
+    </div>
+    <div class="flex-row">
+      <div class="form-group"><label data-i18n="dateLabel">📅 Дата задачи</label><input type="date" id="selectedDate" value=""></div>
+      <div class="form-group"><label data-i18n="filterLabel">⭐ Фильтр</label><select id="filterPriority"><option value="all" data-i18n-filterAll>Все</option><option value="1" data-i18n-filterHigh>Высокие</option><option value="2" data-i18n-filterMid>Средние</option><option value="3" data-i18n-filterLow>Низкие</option></select></div>
+    </div>
+  </div>
+
+  <!-- Приближающиеся задачи + календарь -->
+  <div class="upcoming-panel">
+    <div class="upcoming-card"><h4 data-i18n="tomorrowTitle">📅 Завтра</h4><div id="tomorrowTasks">—</div></div>
+    <div class="upcoming-card"><h4 data-i18n="afterTitle">📆 Послезавтра</h4><div id="afterTomorrowTasks">—</div></div>
+    <div class="calendar-search">
+      <div class="calendar-grid" id="miniCalendar"></div>
+      <div class="form-group search-input"><label data-i18n="searchLabel">🔍 Поиск по задачам</label><input type="text" id="searchTasks" placeholder="Название..."></div>
+    </div>
+  </div>
+
+  <!-- Список задач на выбранную дату + малые кнопки выгрузки внутри карточки (по желанию) -->
+  <div class="card">
+    <div class="flex-between" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center;">
+      <h3 data-i18n="tasksHeading">📋 Задачи на <span id="selectedDateLabel">...</span></h3>
+      <div class="tiny-export-group">
+        <button class="tiny-btn" id="inlineWordBtn">📄 Word</button>
+        <button class="tiny-btn" id="inlineExcelBtn">📊 Excel</button>
+        <button class="tiny-btn" id="inlinePdfBtn">📑 PDF</button>
+        <button id="importTasksBtn" style="background:#6c757d; padding:4px 10px; font-size:0.7rem;">📂 Импорт</button>
+        <button id="exportJsonBtn" style="background:#2c6e9e; padding:4px 10px; font-size:0.7rem;">💾 JSON</button>
+      </div>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+    </div>
+    <div id="tasksContainer" class="task-list"></div>
+  </div>
+
+  <!-- Статистика КПД -->
+  <div class="card">
+    <h3 data-i18n="statsTitle">📊 КПД (коэффициент полезного действия)</h3>
+    <div class="stats">
+      <div class="kpi-item"><span data-i18n="totalLabel">📋 Всего</span><br><strong id="totalTasks">0</strong></div>
+      <div class="kpi-item"><span data-i18n="completedLabel">✅ Выполнено</span><br><strong id="completedTasks">0</strong></div>
+      <div class="kpi-item"><span data-i18n="progressLabel">📈 Прогресс</span><br><strong id="efficiencyPercent">0%</strong></div>
+      <div class="chart-box"><canvas id="efficiencyChart" width="140" height="120"></canvas></div>
+    </div>
+  </div>
+  <div class="footer-note" data-i18n="footerNote">🔔 Уведомления за день и утро. Срочные — красное окно + звук. Перенос с указанием причины.</div>
+</div>
+
+<script>
+  // ---------- ПЕРЕВОДЫ ----------
+  const translations = {
+    ru: { taskLabel:"📌 Задача", startLabel:"🕘 Начало", endLabel:"🕔 Конец", priorityLabel:"⚡ Важность", addBtn:"➕ Добавить", dateLabel:"📅 Дата задачи", filterLabel:"⭐ Фильтр", filterAll:"Все", filterHigh:"Высокие", filterMid:"Средние", filterLow:"Низкие", tomorrowTitle:"📅 Завтра", afterTitle:"📆 Послезавтра", searchLabel:"🔍 Поиск по задачам", tasksHeading:"📋 Задачи на ", statsTitle:"📊 КПД (коэффициент полезного действия)", totalLabel:"📋 Всего", completedLabel:"✅ Выполнено", progressLabel:"📈 Прогресс", footerNote:"🔔 Уведомления за день и утро. Срочные — красное окно + звук.", noTasks:"✨ Нет задач", noTasksUpcoming:"✅ Нет задач", reschedTitle:"📅 Перенос задачи", newDate:"Новая дата:", newStart:"Время начала:", newEnd:"Время окончания:", reasonPlaceholder:"Например: срочные работы...", confirmResched:"✅ Перенести", cancel:"Отмена", urgentTitle:"🚨 СРОЧНАЯ ЗАДАЧА!", understood:"Понятно", toastRescheduled:"Задача перенесена на ", toastDayBefore:"Завтра: ", toastToday:"Сегодня в " },
+    en: { taskLabel:"📌 Task", startLabel:"🕘 Start", endLabel:"🕔 End", priorityLabel:"⚡ Priority", addBtn:"➕ Add", dateLabel:"📅 Date", filterLabel:"⭐ Filter", filterAll:"All", filterHigh:"High", filterMid:"Medium", filterLow:"Low", tomorrowTitle:"📅 Tomorrow", afterTitle:"📆 Day after", searchLabel:"🔍 Search", tasksHeading:"📋 Tasks for ", statsTitle:"📊 Efficiency", totalLabel:"📋 Total", completedLabel:"✅ Done", progressLabel:"📈 Progress", footerNote:"🔔 Daily alerts. Urgent = red popup + sound.", noTasks:"✨ No tasks", noTasksUpcoming:"✅ No tasks", reschedTitle:"📅 Reschedule", newDate:"New date:", newStart:"Start:", newEnd:"End:", reasonPlaceholder:"e.g., urgent work", confirmResched:"✅ Reschedule", cancel:"Cancel", urgentTitle:"🚨 URGENT!", understood:"OK", toastRescheduled:"Task moved to ", toastDayBefore:"Tomorrow: ", toastToday:"Today at " },
+    uz: { taskLabel:"📌 Vazifa", startLabel:"🕘 Boshi", endLabel:"🕔 Tugashi", priorityLabel:"⚡ Muhimlik", addBtn:"➕ Qo‘shish", dateLabel:"📅 Sana", filterLabel:"⭐ Filtr", filterAll:"Hammasi", filterHigh:"Yuqori", filterMid:"O‘rta", filterLow:"Past", tomorrowTitle:"📅 Ertaga", afterTitle:"📆 Indinga", searchLabel:"🔍 Qidiruv", tasksHeading:"📋 Vazifalar: ", statsTitle:"📊 Samaradorlik", totalLabel:"📋 Jami", completedLabel:"✅ Bajarilgan", progressLabel:"📈 Natija", footerNote:"🔔 Ertalabki eslatmalar. Shoshilinch qizil oyna.", noTasks:"✨ Vazifalar yo‘q", noTasksUpcoming:"✅ Vazifalar yo‘q", reschedTitle:"📅 Ko‘chirish", newDate:"Yangi sana:", newStart:"Vaqt boshi:", newEnd:"Vaqt oxiri:", reasonPlaceholder:"Masalan: ish", confirmResched:"✅ Ko‘chirish", cancel:"Bekor", urgentTitle:"🚨 SHOSHILINCH!", understood:"Tushundim", toastRescheduled:"Vazifa ko‘chirildi: ", toastDayBefore:"Ertaga: ", toastToday:"Bugun soat " }
+  };
+  let currentLang = 'ru';
+  function applyLanguage(lang) {
+    currentLang = lang;
+    const t = translations[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if(t[key]) el.innerText = t[key]; });
+    document.querySelector('#filterPriority option[value="all"]').innerText = t.filterAll;
+    document.querySelector('#filterPriority option[value="1"]').innerText = t.filterHigh;
+    document.querySelector('#filterPriority option[value="2"]').innerText = t.filterMid;
+    document.querySelector('#filterPriority option[value="3"]').innerText = t.filterLow;
+    document.querySelector('#taskPriority option[value="1"]').innerHTML = `🔥 ${t.filterHigh}`;
+    document.querySelector('#taskPriority option[value="2"]').innerHTML = `🟠 ${t.filterMid}`;
+    document.querySelector('#taskPriority option[value="3"]').innerHTML = `🔵 ${t.filterLow}`;
+    document.getElementById('selectedDateLabel').innerText = currentDate;
+    document.querySelector('.footer-note').innerText = t.footerNote;
+    renderCurrentDateTasks(); renderUpcoming(); renderCalendar(); updateStatsAndChart();
+  }
+
+  // Модель данных (полностью сохранена)
+  let tasks = [];
+  let currentDate = new Date().toISOString().slice(0,10);
+  let filterPriority = "all";
+  let chartInstance = null;
+  const selectedDateInput = document.getElementById('selectedDate');
+  const selectedDateLabelSpan = document.getElementById('selectedDateLabel');
+  const tasksContainer = document.getElementById('tasksContainer');
+  const addBtn = document.getElementById('addTaskBtn');
+  const taskTitle = document.getElementById('taskTitle');
+  const startTimeInput = document.getElementById('startTime');
+  const endTimeInput = document.getElementById('endTime');
+  const taskPrioritySelect = document.getElementById('taskPriority');
+  const filterSelect = document.getElementById('filterPriority');
+  const searchInput = document.getElementById('searchTasks');
+  function saveTasks() { localStorage.setItem('peskov_tasks_v3', JSON.stringify(tasks)); }
+  function loadTasks() {
+    const stored = localStorage.getItem('peskov_tasks_v3');
+    if(stored) {
+      tasks = JSON.parse(stored);
+      tasks = tasks.map(t => ({ ...t, notifiedDayBefore: t.notifiedDayBefore||false, notifiedMorning: t.notifiedMorning||false, startTime: t.startTime||t.time||"09:00", endTime: t.endTime||addOneHour(t.startTime||"09:00") }));
+    } else {
+      const today = new Date().toISOString().slice(0,10);
+      const tomorrow = new Date(Date.now()+86400000).toISOString().slice(0,10);
+      tasks = [
+        { id: Date.now()+1, title: "Встреча с командой", date: today, startTime: "14:00", endTime: "15:00", priority: 2, completed: false, rescheduleReason: "", notifiedDayBefore: false, notifiedMorning: false },
+        { id: Date.now()+2, title: "Срочный отчёт", date: today, startTime: "10:30", endTime: "11:30", priority: 1, completed: false, rescheduleReason: "", notifiedDayBefore: false, notifiedMorning: false },
+        { id: Date.now()+3, title: "Купить продукты", date: tomorrow, startTime: "19:00", endTime: "20:00", priority: 3, completed: false, rescheduleReason: "", notifiedDayBefore: false, notifiedMorning: false },
+        { id: Date.now()+4, title: "Планёрка", date: tomorrow, startTime: "09:00", endTime: "10:00", priority: 2, completed: false, rescheduleReason: "", notifiedDayBefore: false, notifiedMorning: false }
+      ];
+      saveTasks();
+    }
+    renderCurrentDateTasks(); updateStatsAndChart(); renderUpcoming(); renderCalendar();
+  }
+  function addOneHour(timeStr) { if(!timeStr) return "10:00"; let [h,m]=timeStr.split(':'); let nh= (parseInt(h)+1)%24; return `${nh.toString().padStart(2,'0')}:${m}`; }
+  function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
+  function renderCurrentDateTasks() {
+    let filtered = tasks.filter(t => t.date === currentDate);
+    if(filterPriority !== 'all') filtered = filtered.filter(t => t.priority == filterPriority);
+    const searchTerm = searchInput.value.trim().toLowerCase();
+    if(searchTerm) filtered = filtered.filter(t => t.title.toLowerCase().includes(searchTerm));
+    const t = translations[currentLang];
+    if(filtered.length === 0) { tasksContainer.innerHTML = `<div style="text-align:center">${t.noTasks}</div>`; selectedDateLabelSpan.innerText = currentDate; return; }
+    selectedDateLabelSpan.innerText = currentDate;
+    tasksContainer.innerHTML = filtered.map(task => `
+      <div class="task-item priority-${task.priority}">
+        <div><div class="task-header"><span class="task-title" style="${task.completed ? 'text-decoration:line-through;opacity:0.7' : ''}">${escapeHtml(task.title)}</span>
+          <span class="task-time">⏰ ${task.startTime} – ${task.endTime}</span></div>
+          ${task.rescheduleReason ? `<div class="task-reason">📌 ${currentLang === 'ru' ? 'Причина:' : (currentLang === 'en' ? 'Reason:' : 'Sababi:')} ${escapeHtml(task.rescheduleReason)}</div>` : ''}
+        </div>
+        <div class="task-actions"><button onclick="toggleComplete(${task.id})">${task.completed ? (currentLang==='ru'?'↺ Вернуть':(currentLang==='en'?'↺ Undo':'↺ Qaytar')) : (currentLang==='ru'?'✓ Выполнено':(currentLang==='en'?'✓ Done':'✓ Bajarildi'))}</button>
+          <button onclick="showRescheduleDialog(${task.id})">📅 ${currentLang==='ru'?'Перенести':(currentLang==='en'?'Reschedule':'Ko‘chir')}</button>
+          <button onclick="deleteTask(${task.id})">🗑 ${currentLang==='ru'?'Удалить':(currentLang==='en'?'Delete':'O‘chir')}</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  window.toggleComplete = function(id) { let t = tasks.find(t=>t.id===id); if(t){ t.completed=!t.completed; saveTasks(); renderCurrentDateTasks(); updateStatsAndChart(); renderUpcoming(); checkNotifications(); } };
+  window.deleteTask = function(id) { tasks = tasks.filter(t=>t.id!==id); saveTasks(); renderCurrentDateTasks(); updateStatsAndChart(); renderUpcoming(); renderCalendar(); checkNotifications(); };
+  window.showRescheduleDialog = function(taskId) {
+    const task = tasks.find(t=>t.id===taskId); if(!task) return;
+    const t = translations[currentLang];
+    const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
+    overlay.innerHTML = `<div class="reschedule-modal"><h3>${t.reschedTitle}</h3><p><strong>${escapeHtml(task.title)}</strong></p><label>${t.newDate}</label><input type="date" id="newDate" value="${task.date}"><label>${t.newStart}</label><input type="time" id="newStart" value="${task.startTime}"><label>${t.newEnd}</label><input type="time" id="newEnd" value="${task.endTime}"><label>${currentLang==='ru'?'Причина переноса:':(currentLang==='en'?'Reason:':'Sababi:')}</label><textarea id="reason" rows="2" placeholder="${t.reasonPlaceholder}"></textarea><div style="display:flex; gap:12px; margin-top:16px"><button id="confirmRescheduleBtn" style="background:#2c6e9e;">${t.confirmResched}</button><button id="cancelBtn">${t.cancel}</button></div></div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('confirmRescheduleBtn').onclick = () => {
+      const newDate = document.getElementById('newDate').value, newStart = document.getElementById('newStart').value, newEnd = document.getElementById('newEnd').value, reason = document.getElementById('reason').value.trim();
+      if(newDate && newStart && newEnd) { task.date = newDate; task.startTime = newStart; task.endTime = newEnd; if(reason) task.rescheduleReason = reason; task.notifiedDayBefore = false; task.notifiedMorning = false; saveTasks(); renderCurrentDateTasks(); updateStatsAndChart(); renderUpcoming(); renderCalendar(); showToast(`${t.toastRescheduled} ${newDate} ${newStart}-${newEnd}`); }
+      overlay.remove();
+    };
+    document.getElementById('cancelBtn').onclick = () => overlay.remove();
+    overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
+  };
+  function addTask() { if(!taskTitle.value.trim()) return; tasks.push({ id: Date.now(), title: taskTitle.value.trim(), date: currentDate, startTime: startTimeInput.value, endTime: endTimeInput.value, priority: parseInt(taskPrioritySelect.value), completed: false, rescheduleReason: "", notifiedDayBefore: false, notifiedMorning: false }); saveTasks(); taskTitle.value = ''; renderCurrentDateTasks(); updateStatsAndChart(); renderUpcoming(); renderCalendar(); checkNotifications(); }
+  function renderUpcoming() {
+    const tomorrowDate = new Date(Date.now()+86400000).toISOString().slice(0,10);
+    const afterTomorrowDate = new Date(Date.now()+2*86400000).toISOString().slice(0,10);
+    const t = translations[currentLang];
+    const tomorrowTasks = tasks.filter(t=>t.date===tomorrowDate && !t.completed);
+    const afterTasks = tasks.filter(t=>t.date===afterTomorrowDate && !t.completed);
+    document.getElementById('tomorrowTasks').innerHTML = tomorrowTasks.length ? tomorrowTasks.map(t=>`<div>⏰ ${t.startTime}–${t.endTime} <strong>${escapeHtml(t.title)}</strong></div>`).join('') : t.noTasksUpcoming;
+    document.getElementById('afterTomorrowTasks').innerHTML = afterTasks.length ? afterTasks.map(t=>`<div>⏰ ${t.startTime}–${t.endTime} <strong>${escapeHtml(t.title)}</strong></div>`).join('') : t.noTasksUpcoming;
+  }
+  let currentCalendarMonth = new Date();
+  function renderCalendar() {
+    const year = currentCalendarMonth.getFullYear(), month = currentCalendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    let startWeekday = firstDay.getDay(); if(startWeekday === 0) startWeekday = 7;
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    let gridHtml = '<div class="cal-days">';
+    for(let i=1; i<startWeekday; i++) gridHtml += '<div></div>';
+    for(let d=1; d<=daysInMonth; d++) {
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const hasTasks = tasks.some(t=>t.date===dateStr);
+      const selectedClass = (currentDate===dateStr) ? 'selected' : '';
+      gridHtml += `<div class="cal-day ${selectedClass}" data-date="${dateStr}">${d}${hasTasks?'📌':''}</div>`;
+    }
+    gridHtml += '</div>';
+    const monthNames = currentLang === 'ru' ? ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'] : (currentLang === 'en' ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] : ['Yan','Fev','Mar','Apr','May','Iyun','Iyul','Avg','Sen','Okt','Noy','Dek']);
+    const calendarDiv = document.getElementById('miniCalendar');
+    calendarDiv.innerHTML = `<div class="cal-month-nav"><button id="prevMonthBtn">◀</button><span>${monthNames[month]} ${year}</span><button id="nextMonthBtn">▶</button></div>${gridHtml}`;
+    document.querySelectorAll('.cal-day[data-date]').forEach(el => { el.addEventListener('click', () => { currentDate = el.dataset.date; selectedDateInput.value = currentDate; renderCurrentDateTasks(); renderCalendar(); }); });
+    document.getElementById('prevMonthBtn')?.addEventListener('click', () => { currentCalendarMonth.setMonth(currentCalendarMonth.getMonth()-1); renderCalendar(); });
+    document.getElementById('nextMonthBtn')?.addEventListener('click', () => { currentCalendarMonth.setMonth(currentCalendarMonth.getMonth()+1); renderCalendar(); });
+  }
+  function updateStatsAndChart() { const total=tasks.length, completed=tasks.filter(t=>t.completed).length, percent=total===0?0:Math.round((completed/total)*100); document.getElementById('totalTasks').innerText=total; document.getElementById('completedTasks').innerText=completed; document.getElementById('efficiencyPercent').innerText=percent+'%'; if(chartInstance) chartInstance.destroy(); chartInstance = new Chart(document.getElementById('efficiencyChart'), { type:'doughnut', data:{ labels:[translations[currentLang].completedLabel.split(' ')[0]||'Выполнено', 'Осталось'], datasets:[{ data:[completed, total-completed], backgroundColor:['#2c6e2c','#c2410c'] }] }, options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{position:'bottom'}} } }); }
+  function showToast(msg) { let tDiv=document.createElement('div'); tDiv.className='toast-notification'; tDiv.innerHTML=`🔔 ${msg}<br><span style="font-size:10px;">×</span>`; tDiv.onclick=()=>tDiv.remove(); document.body.appendChild(tDiv); setTimeout(()=>tDiv.remove(),6000); }
+  function playSound() { try { let a=new (AudioContext||window.webkitAudioContext)(); let o=a.createOscillator(); let g=a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value=880; g.gain.value=0.2; o.start(); g.gain.exponentialRampToValueAtTime(0.00001,a.currentTime+0.8); o.stop(a.currentTime+0.6); a.resume(); } catch(e){} }
+  let activeModalUrgent=false;
+  function showUrgent(task) { if(activeModalUrgent) return; activeModalUrgent=true; let ov=document.createElement('div'); ov.className='modal-overlay'; ov.innerHTML=`<div class="urgent-modal"><h2>${translations[currentLang].urgentTitle}</h2><p><strong>${escapeHtml(task.title)}</strong></p><p>⏰ ${task.startTime} – ${task.endTime}<br>📅 ${task.date}</p><button id="closeUrgent" style="background:#b91c1c;">${translations[currentLang].understood}</button></div>`; document.body.appendChild(ov); playSound(); document.getElementById('closeUrgent').onclick=()=>{ov.remove();activeModalUrgent=false;}; ov.onclick=e=>{if(e.target===ov){ov.remove();activeModalUrgent=false;}}; }
+  function checkNotifications() { const now=new Date(); const today=now.toISOString().slice(0,10); const hour=now.getHours(); const isMorning=hour>=8 && hour<=11; tasks.forEach(t=>{ if(t.completed) return; const before=new Date(t.date+"T"+t.startTime+":00"); before.setDate(before.getDate()-1); const beforeStr=before.toISOString().slice(0,10); if(!t.notifiedDayBefore && beforeStr===today){ t.notifiedDayBefore=true; saveTasks(); let msg=`${translations[currentLang].toastDayBefore} "${t.title}" в ${t.startTime}`; if(t.priority===1) showUrgent(t); else showToast(msg); } if(!t.notifiedMorning && t.date===today && isMorning){ t.notifiedMorning=true; saveTasks(); let msg=`${translations[currentLang].toastToday} ${t.startTime}: "${t.title}"`; if(t.priority===1) showUrgent(t); else showToast(msg); } }); }
+  async function screenshot() { let el=document.querySelector('.container'); let c=await html2canvas(el,{scale:1.5}); let a=document.createElement('a'); a.download='peskov_screen.png'; a.href=c.toDataURL(); a.click(); }
+  function exportPDF() { html2pdf().set({margin:0.5,filename:'peskov_report.pdf'}).from(document.querySelector('.container')).save(); }
+  function exportWord() { let clone=document.querySelector('.container').cloneNode(true); let html=`<html><head><meta charset="UTF-8"><title>Peskov_tasks</title><style>body{font-family:system-ui;padding:20px} .task-actions button, .right-tools, .dropdown, .tiny-export-group, #addTaskBtn, #importTasksBtn, #exportJsonBtn, .tiny-btn, .icon-btn-sm, .lang-select {display:none;}</style></head><body>${clone.innerHTML}</body></html>`; let blob=new Blob([html],{type:'application/msword'}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='peskov_tasks.doc'; a.click(); }
+  function exportExcel() { let data=[["Title","Date","Start","End","Priority","Status","Reason"]]; tasks.forEach(t=>{data.push([t.title,t.date,t.startTime,t.endTime,(t.priority==1?"High":t.priority==2?"Medium":"Low"),t.completed?"Done":"Active",t.rescheduleReason||""]);}); let csv=data.map(row=>row.join("	")).join("
+"); let blob=new Blob([csv],{type:'application/vnd.ms-excel'}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='peskov_tasks.xls'; a.click(); }
+
+  // темы (циклические)
+  const themes = ['theme-light', 'theme-emerald', 'theme-soft'];
+  let themeIndex = 0;
+  function applyTheme(index) { themes.forEach(t => document.body.classList.remove(t)); document.body.classList.add(themes[index]); localStorage.setItem('peskov_theme', themes[index]); }
+  document.getElementById('themeCycleBtn').onclick = () => { themeIndex = (themeIndex + 1) % themes.length; applyTheme(themeIndex); };
+  (function initTheme() { const saved = localStorage.getItem('peskov_theme'); if(saved && themes.includes(saved)) { document.body.classList.add(saved); themeIndex = themes.indexOf(saved); } else { document.body.classList.add('theme-light'); themeIndex=0; } })();
+
+  // dropdown logic
+  const dropdownBtn = document.getElementById('dropdownToggleBtn');
+  const dropdownMenu = document.getElementById('dropdownMenu');
+  dropdownBtn.addEventListener('click', (e) => { e.stopPropagation(); dropdownMenu.classList.toggle('show'); });
+  window.addEventListener('click', (e) => { if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) dropdownMenu.classList.remove('show'); });
+  document.getElementById('menuScreenshotBtn').onclick = () => { screenshot(); dropdownMenu.classList.remove('show'); };
+  document.getElementById('menuPdfBtn').onclick = () => { exportPDF(); dropdownMenu.classList.remove('show'); };
+  document.getElementById('menuWordBtn').onclick = () => { exportWord(); dropdownMenu.classList.remove('show'); };
+  document.getElementById('menuExcelBtn').onclick = () => { exportExcel(); dropdownMenu.classList.remove('show'); };
+  document.getElementById('inlineWordBtn').onclick = exportWord;
+  document.getElementById('inlineExcelBtn').onclick = exportExcel;
+  document.getElementById('inlinePdfBtn').onclick = exportPDF;
+  document.getElementById('importTasksBtn').onclick=()=>document.getElementById('importFile').click();
+  document.getElementById('exportJsonBtn').onclick=()=>{ let a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(tasks,null,2)],{type:'application/json'})); a.download=`peskov_backup.json`; a.click(); };
+  document.getElementById('importFile').onchange=e=>{ let f=e.target.files[0]; if(!f) return; let r=new FileReader(); r.onload=ev=>{ try{ let imp=JSON.parse(ev.target.result); if(Array.isArray(imp)){ tasks=imp.map(t=>({...t,notifiedDayBefore:false,notifiedMorning:false})); saveTasks(); loadTasks(); } }catch(e){alert("JSON error");} }; r.readAsText(f); };
+  selectedDateInput.addEventListener('change', e=>{ currentDate=e.target.value; renderCurrentDateTasks(); renderCalendar(); });
+  filterSelect.addEventListener('change',e=>{filterPriority=e.target.value; renderCurrentDateTasks();});
+  searchInput.addEventListener('input',()=>renderCurrentDateTasks());
+  addBtn.addEventListener('click',addTask);
+  document.getElementById('langSwitcher').addEventListener('change', (e) => { applyLanguage(e.target.value); });
+  setInterval(checkNotifications,30000);
+  loadTasks(); selectedDateInput.value=currentDate; renderCalendar(); checkNotifications(); applyLanguage('ru'); document.getElementById('langSwitcher').value='ru';
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('SW зарегистрирован!', reg))
+        .catch(err => console.error('Ошибка регистрации SW', err));
+    });
+  }
+</script>
+</body>
+</html>

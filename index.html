@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1e1e2f">
   <title>PESKOV — умный помощник</title>
+  
   <link rel="manifest" href="./manifest.json">
   <link rel="apple-touch-icon" href="./icon-192.png">
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -72,7 +74,6 @@
     body.theme-emerald .brand h1 { background: linear-gradient(135deg, #b0f3e0, #3dd6b3); -webkit-background-clip: text; background-clip: text; color: transparent; }
     body.theme-soft .brand h1 { background: linear-gradient(135deg, #daa06a, #b87a4b); -webkit-background-clip: text; background-clip: text; color: transparent; }
     
-    /* Новая компактная панель справа */
     .right-tools { display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.03); padding: 4px 10px; border-radius: 48px; backdrop-filter: blur(2px); }
     .icon-btn-sm { background: #eef2f6; border: none; padding: 6px 10px; border-radius: 32px; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; transition: 0.1s; font-weight: 500; }
     .icon-btn-sm:hover { filter: brightness(0.94); transform: scale(0.96); }
@@ -80,7 +81,6 @@
     body.theme-emerald .lang-select { background: #1f6658; color: white; }
     body.theme-soft .lang-select { background: #f8e1cd; color: #7a5a44; }
 
-    /* выпадающее меню (dropdown) */
     .dropdown { position: relative; display: inline-block; }
     .dropdown-btn { background: #eef2f6; border: none; padding: 6px 10px; border-radius: 32px; cursor: pointer; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 4px; transition: 0.1s; }
     .dropdown-btn:hover { filter: brightness(0.94); transform: scale(0.96); }
@@ -153,7 +153,6 @@
       <h1>PESKOV</h1>
     </div>
     
-    <!-- Компактная панель справа: язык, тема, выпадающее меню экспорта -->
     <div class="right-tools">
       <select id="langSwitcher" class="lang-select"><option value="ru">🇷🇺 Рус</option><option value="en">🇬🇧 Eng</option><option value="uz">🇺🇿 Oʻzb</option></select>
       <button class="icon-btn-sm" id="themeCycleBtn" title="Сменить тему">🎨</button>
@@ -169,7 +168,6 @@
     </div>
   </div>
 
-  <!-- Форма создания задачи -->
   <div class="card">
     <div class="flex-row">
       <div class="form-group"><label data-i18n="taskLabel">📌 Задача</label><input type="text" id="taskTitle" placeholder="Что сделать?"></div>
@@ -184,7 +182,6 @@
     </div>
   </div>
 
-  <!-- Приближающиеся задачи + календарь -->
   <div class="upcoming-panel">
     <div class="upcoming-card"><h4 data-i18n="tomorrowTitle">📅 Завтра</h4><div id="tomorrowTasks">—</div></div>
     <div class="upcoming-card"><h4 data-i18n="afterTitle">📆 Послезавтра</h4><div id="afterTomorrowTasks">—</div></div>
@@ -194,7 +191,6 @@
     </div>
   </div>
 
-  <!-- Список задач на выбранную дату + малые кнопки выгрузки внутри карточки (по желанию) -->
   <div class="card">
     <div class="flex-between" style="display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center;">
       <h3 data-i18n="tasksHeading">📋 Задачи на <span id="selectedDateLabel">...</span></h3>
@@ -210,7 +206,6 @@
     <div id="tasksContainer" class="task-list"></div>
   </div>
 
-  <!-- Статистика КПД -->
   <div class="card">
     <h3 data-i18n="statsTitle">📊 КПД (коэффициент полезного действия)</h3>
     <div class="stats">
@@ -247,7 +242,6 @@
     renderCurrentDateTasks(); renderUpcoming(); renderCalendar(); updateStatsAndChart();
   }
 
-  // Модель данных (полностью сохранена)
   let tasks = [];
   let currentDate = new Date().toISOString().slice(0,10);
   let filterPriority = "all";
@@ -273,9 +267,7 @@
       const tomorrow = new Date(Date.now()+86400000).toISOString().slice(0,10);
       tasks = [
         { id: Date.now()+1, title: "Встреча с командой", date: today, startTime: "14:00", endTime: "15:00", priority: 2, completed: false, rescheduleReason: "", notifiedDayBefore: false, notifiedMorning: false },
-        { id: Date.now()+2, title: "Срочный отчёт", date: today, startTime: "10:30", endTime: "11:30", priority: 1, completed: false, rescheduleReason: "", notifiedDayBefore: false, notifiedMorning: false },
-        { id: Date.now()+3, title: "Купить продукты", date: tomorrow, startTime: "19:00", endTime: "20:00", priority: 3, completed: false, rescheduleReason: "", notifiedDayBefore: false, notifiedMorning: false },
-        { id: Date.now()+4, title: "Планёрка", date: tomorrow, startTime: "09:00", endTime: "10:00", priority: 2, completed: false, rescheduleReason: "", notifiedDayBefore: false, notifiedMorning: false }
+        { id: Date.now()+2, title: "Срочный отчёт", date: today, startTime: "10:30", endTime: "11:30", priority: 1, completed: false, rescheduleReason: "", notifiedDayBefore: false, notifiedMorning: false }
       ];
       saveTasks();
     }
@@ -361,8 +353,7 @@
   async function screenshot() { let el=document.querySelector('.container'); let c=await html2canvas(el,{scale:1.5}); let a=document.createElement('a'); a.download='peskov_screen.png'; a.href=c.toDataURL(); a.click(); }
   function exportPDF() { html2pdf().set({margin:0.5,filename:'peskov_report.pdf'}).from(document.querySelector('.container')).save(); }
   function exportWord() { let clone=document.querySelector('.container').cloneNode(true); let html=`<html><head><meta charset="UTF-8"><title>Peskov_tasks</title><style>body{font-family:system-ui;padding:20px} .task-actions button, .right-tools, .dropdown, .tiny-export-group, #addTaskBtn, #importTasksBtn, #exportJsonBtn, .tiny-btn, .icon-btn-sm, .lang-select {display:none;}</style></head><body>${clone.innerHTML}</body></html>`; let blob=new Blob([html],{type:'application/msword'}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='peskov_tasks.doc'; a.click(); }
-  function exportExcel() { let data=[["Title","Date","Start","End","Priority","Status","Reason"]]; tasks.forEach(t=>{data.push([t.title,t.date,t.startTime,t.endTime,(t.priority==1?"High":t.priority==2?"Medium":"Low"),t.completed?"Done":"Active",t.rescheduleReason||""]);}); let csv=data.map(row=>row.join("	")).join("
-"); let blob=new Blob([csv],{type:'application/vnd.ms-excel'}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='peskov_tasks.xls'; a.click(); }
+  function exportExcel() { let data=[["Title","Date","Start","End","Priority","Status","Reason"]]; tasks.forEach(t=>{data.push([t.title,t.date,t.startTime,t.endTime,(t.priority==1?"High":t.priority==2?"Medium":"Low"),t.completed?"Done":"Active",t.rescheduleReason||""]);}); let csv=data.map(row=>row.join("\t")).join("\n"); let blob=new Blob([csv],{type:'application/vnd.ms-excel'}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='peskov_tasks.xls'; a.click(); }
 
   // темы (циклические)
   const themes = ['theme-light', 'theme-emerald', 'theme-soft'];
@@ -393,11 +384,11 @@
   document.getElementById('langSwitcher').addEventListener('change', (e) => { applyLanguage(e.target.value); });
   setInterval(checkNotifications,30000);
   loadTasks(); selectedDateInput.value=currentDate; renderCalendar(); checkNotifications(); applyLanguage('ru'); document.getElementById('langSwitcher').value='ru';
-  if ('serviceWorker' in navigator) {
+
+  // ЗАЩИЩЕННАЯ АКТИВАЦИЯ PWA (чтобы не ломать код при локальном запуске)
+  if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('SW зарегистрирован!', reg))
-        .catch(err => console.error('Ошибка регистрации SW', err));
+      navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW Error:', err));
     });
   }
 </script>
